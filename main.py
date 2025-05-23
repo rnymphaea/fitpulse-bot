@@ -6,7 +6,7 @@ from aiogram.methods import DeleteWebhook
 
 import config
 
-from handlers import common
+from handlers import common, food
 
 TOKEN = config.get("TOKEN")
 
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 async def main():
     logger.info("Bot started")
-    dp.include_routers(common.router)
+    dp.include_routers(common.router, food.router)
     await bot(DeleteWebhook(drop_pending_updates=True))
     await dp.start_polling(bot)
 
