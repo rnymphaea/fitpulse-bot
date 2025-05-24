@@ -15,7 +15,6 @@ class User(Base):
     
     products = relationship("Product", back_populates="user")
     meals = relationship("Meal", back_populates="user")
-    workouts = relationship("Workout", back_populates="user")
 
 
 class Product(Base):
@@ -68,7 +67,7 @@ class MealItem(Base):
     
     meal_id = Column(Integer, ForeignKey('meals.id'), primary_key=True)
     product_id = Column(Integer, ForeignKey('products.id'), primary_key=True)
-    quantity = Column(Float, nullable=False)
+    quantity = Column(Integer, nullable=False)
     
     meal = relationship("Meal", back_populates="products")
     product = relationship("Product")
