@@ -27,6 +27,7 @@ class Product(Base):
     protein = Column(Integer, nullable=False)
     fats = Column(Integer, nullable=False)
     carbs = Column(Integer, nullable=False)
+    fiber = Column(Integer)
     category_id = Column(Integer, ForeignKey('categories.id'))
 
     user = relationship("User", back_populates='products')
