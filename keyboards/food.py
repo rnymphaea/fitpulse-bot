@@ -13,5 +13,6 @@ def meals_keyboard():
         [InlineKeyboardButton(text="Завтрак", callback_data="breakfast")],
         [InlineKeyboardButton(text="Обед", callback_data="lunch")],
         [InlineKeyboardButton(text="Ужин", callback_data="dinner")],
+        [InlineKeyboardButton(text="Перекус", callback_data="snack")],
     ])
     return keyboard

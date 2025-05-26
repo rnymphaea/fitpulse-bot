@@ -14,3 +14,10 @@ def confirmation_keyboard():
         [InlineKeyboardButton(text="❌ Нет", callback_data="confirmation_no")],
     ])
     return keyboard
+
+
+def cancel_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Отмена", callback_data="cancel")]
+    ])
+    return keyboard
