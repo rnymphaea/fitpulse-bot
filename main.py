@@ -7,6 +7,7 @@ from aiogram.methods import DeleteWebhook
 import config
 from handlers import common, food
 from middleware.database import DataBaseSession
+from middleware.logging import LoggingMiddleware
 from storage.database import session_maker
 
 TOKEN = config.get("TOKEN")
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 async def main():
     logger.info("Bot started")
     dp.include_routers(common.router, food.food_router)
+    dp.update.middleware(LoggingMiddleware())
     dp.update.middleware(DataBaseSession(session_pool=session_maker))
     await bot(DeleteWebhook(drop_pending_updates=True))
     await dp.start_polling(bot)

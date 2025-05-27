@@ -35,50 +35,61 @@ async def food(callback: CallbackQuery):
 
 @food_router.callback_query(F.data == "add_plate")
 async def add_product(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("Введите название блюда")
     await state.set_state(AddNewProduct.name)
+    kb = cancel_keyboard()
+    await callback.message.answer("Введите название блюда", reply_markup=kb)
+    await callback.message.delete()
 
 
 @food_router.message(AddNewProduct.name)
 async def process_product_name(message: Message, state: FSMContext, session: AsyncSession):
     telegram_id = message.from_user.id
     name = message.text
+    kb = cancel_keyboard()
     exists = await get_product(session, telegram_id, name.lower())
     if exists:
-        await message.answer("Блюдо уже есть в вашем списке!")
+        await message.answer("Блюдо уже есть в вашем списке!", reply_markup=kb)
     else:
-        await message.answer("Введите количество калорий")
+        await message.answer("Введите количество калорий", reply_markup=kb)
         await state.update_data(name=name)
         await state.set_state(AddNewProduct.calories)
 
 
 @food_router.message(AddNewProduct.calories)
 async def process_product_calories(message: Message, state: FSMContext):
+    kb = cancel_keyboard()
     try:
         calories = int(message.text)
-        await message.answer("Введите БЖУ на 100г блюда через пробел. \n Пример: 15.6 20.1 50.3")
+        if calories <= 0:
+            raise ValueError("calories must be positive!")
+        await message.answer("Введите БЖУ на 100г блюда через пробел. \n Пример: 15.6 20.1 50.3", reply_markup=kb)
         await state.update_data(calories=calories)
         await state.set_state(AddNewProduct.pfc)
 
     except ValueError:
-        await message.answer("Неверный формат данных! Введите целое число.")
+        await message.answer("Неверный формат данных! Введите положительное число.", reply_markup=kb)
     
 
 @food_router.message(AddNewProduct.pfc)
 async def process_product_pfc(message: Message, state: FSMContext):
+    kb = cancel_keyboard()
     try:
         protein, fats, carbs = map(lambda x: int(x * 10), map(float, message.text.split()))
-        await message.answer("Введите содержание пищевых волокон, если указано.")
+        if protein < 0 or fats < 0 or carbs < 0:
+            raise ValueError("pfc must be non-zero!")
+        await message.answer("Введите содержание пищевых волокон, если указано.", reply_markup=kb)
         await state.update_data(pfc=(protein, fats, carbs))
         await state.set_state(AddNewProduct.fiber)
     except ValueError:
-        await message.answer("Неверный формат данных! \n Введите БЖУ на 100г блюда через пробел. \n Пример: 15.6 20.1 50.3")
+        await message.answer("Неверный формат данных! \n Введите БЖУ на 100г блюда через пробел. \n Пример: 15.6 20.1 50.3", reply_markup=kb)
         
 
 @food_router.message(AddNewProduct.fiber)
 async def process_product_fiber(message: Message, state: FSMContext):
     try:
         fiber = int(float(message.text) * 10)
+        if fiber < 0:
+            raise ValueError("fiber must be non-zero!")
         info = await state.get_data()
         name = info['name']
         calories = info['calories']
@@ -87,10 +98,10 @@ async def process_product_fiber(message: Message, state: FSMContext):
         answer_text = (f"Вы хотите добавить следующее блюдо:\n"
             f"Название: {name}\n"
             f"Калории: {calories}\n"
-            f"Белки: {protein}г\n"
-            f"Жиры: {fats}г\n"
-            f"Углеводы: {carbs}г\n"
-            f"Пищевые волокна: {fiber}\n?")
+            f"Белки: {protein / 10}г\n"
+            f"Жиры: {fats / 10}г\n"
+            f"Углеводы: {carbs / 10}г\n"
+            f"Пищевые волокна: {fiber / 10}г\n?")
         kb = confirmation_keyboard()
 
         await message.answer(answer_text, reply_markup=kb)
@@ -163,6 +174,19 @@ async def process_meal_name(message: Message, state: FSMContext):
         await message.answer("Введите положительное число - номер блюда")
 
 
+@food_router.callback_query(
+    F.data == 'cancel',
+    StateFilter(AddNewProduct.name, AddNewProduct.calories, AddNewProduct.pfc, AddNewProduct.fiber)
+)
+async def process_product_cancel(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer("❌ Добавление отменено")
+    kb = start_keyboard()
+    await callback.message.answer("Выберите опцию", reply_markup=kb)
+    await callback.message.edit_text(callback.message.text)
+    await state.clear()
+    await callback.answer()
+
+
 @food_router.message(AddNewMeal.quantity)
 async def process_meal_quantity(message: Message, state: FSMContext):
     try: 
@@ -181,6 +205,7 @@ async def process_meal_quantity(message: Message, state: FSMContext):
         
     except ValueError:
         await message.answer("Введите положительно число - количество грамм")
+
 
 
 @food_router.callback_query(
