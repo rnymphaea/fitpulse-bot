@@ -132,3 +132,25 @@ async def get_today_meals(session: AsyncSession, telegram_id: int):
         
         today_meals.append(meal_info) 
     return today_meals
+
+
+async def delete_all_user_food_data(session: AsyncSession, telegram_id: int):
+    user = await get_user(session, telegram_id)
+    if not user:
+        return False
+
+    meal_subquery = select(Meal.id).where(Meal.user_id == user.id)
+    await session.execute(
+        delete(MealItem).where(MealItem.meal_id.in_(meal_subquery))
+    )
+    
+    await session.execute(
+        delete(Meal).where(Meal.user_id == user.id)
+    )
+    
+    await session.execute(
+        delete(Product).where(Product.user_id == user.id)
+    )
+    
+    await session.commit()
+    return True

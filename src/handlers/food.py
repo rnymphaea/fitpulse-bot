@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.keyboards import food as kb_food
 from src.keyboards.common import start_keyboard, confirmation_keyboard, cancel_keyboard
-from src.storage.food import get_product, create_product, get_products, create_meal, get_today_meals
+from src.storage.food import get_product, create_product, get_products, create_meal, get_today_meals, delete_all_user_food_data
 
 food_router = Router()
 
@@ -197,13 +197,13 @@ async def process_meal_quantity(message: Message, state: FSMContext):
         if quantity <= 0:
             raise ValueError("negative quantity")
         kb = cancel_keyboard()
-        answer_text = "Если хотите ввести ещё блюдо, выбрите одно из списка, если нет - нажмите кнопку 'Отмена':\n"
+        answer_text = "Если хотите ввести ещё блюдо, выбрите одно из списка, если нет - нажмите кнопку <b><i>Отмена</i></b>:\n"
         data = await state.get_data()
         data['meal_products'][-1][-1] = quantity 
         for i in range(len(data['user_products'])):
             product = data['user_products'][i]
             answer_text += f"{i+1}. {product.name}\n"
-        await message.answer(answer_text, reply_markup=kb)
+        await message.answer(answer_text, reply_markup=kb, parse_mode=ParseMode.HTML)
         await state.set_state(AddNewMeal.product)
         
     except ValueError:
@@ -268,11 +268,11 @@ async def day_stats(callback: CallbackQuery, session: AsyncSession):
             text += f"⏱️ {meal['time']} - <b>{meal['type'].title()}</b>\n"
             for product in meal['products']:
                 text += f"・{product['name']}: {product['quantity']}г\n"
-                calories += product['calories']
-                protein += product['protein']
-                fats += product['fats']
-                carbs += product['carbs']
-                fiber += product['fiber']
+                calories += product['calories'] * product['quantity'] / 100
+                protein += product['protein'] * product['quantity'] / 100
+                fats += product['fats'] * product['quantity'] / 100
+                carbs += product['carbs'] * product['quantity'] / 100
+                fiber += product['fiber'] * product['quantity'] / 100
             text += "\n"
         text += "\n"
         text += "<b>Итого:</b>\n"
@@ -284,3 +284,12 @@ async def day_stats(callback: CallbackQuery, session: AsyncSession):
         await callback.message.answer(text, parse_mode=ParseMode.HTML)
     await callback.answer()
 
+
+@food_router.callback_query(F.data == "delete_all_food_data")
+async def delete_all_food_data(callback: CallbackQuery, session: AsyncSession):
+    success = await delete_all_user_food_data(session, callback.from_user.id)
+    if success:
+        await callback.message.answer("Удаление всех данных о продуктах и приёмах пищи прошло успешно.")
+    else:
+        await callback.message.answer("Что-то пошло не так при удалении данных о продуктах и приёмах пищи.")
+    await callback.answer()
