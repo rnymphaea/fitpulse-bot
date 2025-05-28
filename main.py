@@ -5,10 +5,10 @@ from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
 import config
-from handlers import common, food
-from middleware.database import DataBaseSession
-from middleware.logging import LoggingMiddleware
-from storage.database import session_maker
+from src.handlers import common, food
+from src.middleware.database import DataBaseSession
+from src.middleware.logging import LoggingMiddleware
+from src.storage.database import session_maker
 
 TOKEN = config.get("TOKEN")
 
