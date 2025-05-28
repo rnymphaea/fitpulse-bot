@@ -10,9 +10,8 @@ def select_option_keyboard():
 
 def meals_keyboard():
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Завтрак", callback_data="breakfast")],
-        [InlineKeyboardButton(text="Обед", callback_data="lunch")],
-        [InlineKeyboardButton(text="Ужин", callback_data="dinner")],
-        [InlineKeyboardButton(text="Перекус", callback_data="snack")],
+        [InlineKeyboardButton(text="Завтрак", callback_data="breakfast"), InlineKeyboardButton(text="Перекус", callback_data="snack")],
+        [InlineKeyboardButton(text="Обед", callback_data="lunch"), InlineKeyboardButton(text="Ужин", callback_data="dinner")],
+        [InlineKeyboardButton(text="Статистика за день", callback_data="stat")]
     ])
     return keyboard

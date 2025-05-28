@@ -1,5 +1,9 @@
+from datetime import datetime
+
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import func
+from sqlalchemy.orm import selectinload
 
 from src.storage.models import Product, User, MealType, Meal, MealItem
 from src.storage.user import get_user
@@ -87,4 +91,44 @@ async def create_meal(session: AsyncSession, telegram_id: int, info: dict):
         print(e)
         await session.rollback()
         raise
+
+
+async def get_today_meals(session: AsyncSession, telegram_id: int):
+    user = await get_user(session, telegram_id)
+    if not user:
+        return []
+
+    today = datetime.today().date()
+    result = await session.execute(
+        select(Meal).options(
+            selectinload(Meal.type),
+            selectinload(Meal.products).selectinload(MealItem.product)
+        ).where(
+            Meal.user_id == user.id,
+            func.date(Meal.created_at) == today
+        ).order_by(Meal.created_at)
+    )
+
+    today_meals = []
+
+    for meal in result.scalars().all():
+        meal_info = {
+            "type": meal.type.name,
+            "time": meal.created_at.strftime("%H:%M"),
+            "products": []
+        }
         
+        for meal_item in meal.products:
+            product = meal_item.product
+            meal_info["products"].append({
+                "name": product.name,
+                "calories": product.calories,
+                "protein": product.protein,
+                "fats": product.fats,
+                "carbs": product.carbs,
+                "fiber": product.fiber,
+                "quantity": meal_item.quantity
+            })
+        
+        today_meals.append(meal_info) 
+    return today_meals

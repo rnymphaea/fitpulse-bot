@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.keyboards import food as kb_food
 from src.keyboards.common import start_keyboard, confirmation_keyboard, cancel_keyboard
-from src.storage.food import get_product, create_product, get_products, create_meal
+from src.storage.food import get_product, create_product, get_products, create_meal, get_today_meals
 
 food_router = Router()
 
@@ -255,4 +255,32 @@ async def process_meal_confirmation(callback: CallbackQuery, state: FSMContext, 
     await state.clear()
     await callback.answer()
 
+
+@food_router.callback_query(F.data == "stat")
+async def day_stats(callback: CallbackQuery, session: AsyncSession):
+    today_meals = await get_today_meals(session, callback.from_user.id)
+    if not today_meals:
+        await callback.message.answer("Сегодня вы не добавляли приёмы пищи!")
+    else:
+        calories, protein, fats, carbs, fiber = 0, 0, 0, 0, 0
+        text = "📊 Ваша статистика за сегодня:\n\n"
+        for meal in today_meals:
+            text += f"⏱️ {meal['time']} - <b>{meal['type'].title()}</b>\n"
+            for product in meal['products']:
+                text += f"・{product['name']}: {product['quantity']}г\n"
+                calories += product['calories']
+                protein += product['protein']
+                fats += product['fats']
+                carbs += product['carbs']
+                fiber += product['fiber']
+            text += "\n"
+        text += "\n"
+        text += "<b>Итого:</b>\n"
+        text += f"<b>♨️ Калории:</b> {calories}\n"
+        text += f"<b>🥩 Белки:</b> {protein / 10}г\n"
+        text += f"<b>🧈 Жиры:</b> {fats / 10}г\n"
+        text += f"<b>🍚 Углеводы:</b> {carbs / 10}г\n"
+        text += f"<b>🥬 Пищевые волокна:</b> {fiber / 10}г\n"
+        await callback.message.answer(text, parse_mode=ParseMode.HTML)
+    await callback.answer()
 
