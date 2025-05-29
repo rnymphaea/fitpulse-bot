@@ -7,7 +7,7 @@ from aiogram.enums.parse_mode import ParseMode
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.keyboards import food as kb_food
+from src.keyboards.food import select_option_keyboard, meals_keyboard, plot_keyboard
 from src.keyboards.common import start_keyboard, confirmation_keyboard, cancel_keyboard
 from src.storage.food import get_product, create_product, get_products, create_meal, get_today_meals, delete_all_user_food_data
 
@@ -30,7 +30,7 @@ class AddNewMeal(StatesGroup):
 
 @food_router.callback_query(F.data == "food")
 async def food(callback: CallbackQuery):
-    kb = kb_food.select_option_keyboard()
+    kb = select_option_keyboard()
     await callback.message.edit_text("Выберите опцию", reply_markup=kb)
 
 
@@ -137,7 +137,7 @@ async def process_product_confirmaion(callback: CallbackQuery, state: FSMContext
 
 @food_router.callback_query(F.data == "meals")
 async def meals(callback: CallbackQuery):
-    kb = kb_food.meals_keyboard()
+    kb = meals_keyboard()
     await callback.message.edit_text("Какой приём пищи вы хотите добавить?", reply_markup=kb)
 
 
@@ -277,11 +277,16 @@ async def day_stats(callback: CallbackQuery, session: AsyncSession):
         text += "\n"
         text += "<b>Итого:</b>\n"
         text += f"<b>♨️ Калории:</b> {calories}\n"
-        text += f"<b>🥩 Белки:</b> {protein / 10}г\n"
-        text += f"<b>🧈 Жиры:</b> {fats / 10}г\n"
-        text += f"<b>🍚 Углеводы:</b> {carbs / 10}г\n"
-        text += f"<b>🥬 Пищевые волокна:</b> {fiber / 10}г\n"
-        await callback.message.answer(text, parse_mode=ParseMode.HTML)
+        text += f"<b>🥩 Белки:</b> {round(protein / 10, 2)}г\n"
+        text += f"<b>🧈 Жиры:</b> {round(fats / 10, 2)}г\n"
+        text += f"<b>🍚 Углеводы:</b> {round(carbs / 10, 2)}г\n"
+        text += f"<b>🥬 Пищевые волокна:</b> {round(fiber / 10, 2)}г\n"
+
+        kb = plot_keyboard()
+        await callback.message.answer(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+    kb = start_keyboard()
+    await callback.message.answer("Выберите опцию", reply_markup=kb)
+
     await callback.answer()
 
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -98,23 +98,34 @@ async def get_today_meals(session: AsyncSession, telegram_id: int):
     if not user:
         return []
 
-    today = datetime.today().date()
+ #   today = datetime.today().date()
+    LOCAL_TZ_OFFSET = timedelta(hours=3)  # замените на ваше смещение
+    
+    local_now = datetime.now(timezone.utc) + LOCAL_TZ_OFFSET
+    start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timedelta(days=1)
+    
+    utc_start = start_of_day - LOCAL_TZ_OFFSET
+    utc_end = end_of_day - LOCAL_TZ_OFFSET
+
     result = await session.execute(
         select(Meal).options(
             selectinload(Meal.type),
             selectinload(Meal.products).selectinload(MealItem.product)
         ).where(
             Meal.user_id == user.id,
-            func.date(Meal.created_at) == today
+            Meal.created_at >= utc_start,
+            Meal.created_at < utc_end
         ).order_by(Meal.created_at)
     )
 
     today_meals = []
 
     for meal in result.scalars().all():
+        local_time = meal.created_at + LOCAL_TZ_OFFSET
         meal_info = {
             "type": meal.type.name,
-            "time": meal.created_at.strftime("%H:%M"),
+            "time": local_time.strftime("%H:%M"),
             "products": []
         }
         
