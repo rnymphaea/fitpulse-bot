@@ -16,6 +16,8 @@ alembic = "^1.16.1"
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.41"}
 asyncpg = "^0.30.0"
 datetime = "^5.5"
+matplotlib = "<3.8"
+pandas = "^2.2.3"
 
 
 [build-system]

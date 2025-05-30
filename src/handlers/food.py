@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, BufferedInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import StateFilter
@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.keyboards.food import select_option_keyboard, meals_keyboard, plot_keyboard
 from src.keyboards.common import start_keyboard, confirmation_keyboard, cancel_keyboard
 from src.storage.food import get_product, create_product, get_products, create_meal, get_today_meals, delete_all_user_food_data
+from src.utils.plots import generate_nutrition_chart
 
 food_router = Router()
 
@@ -26,6 +27,10 @@ class AddNewMeal(StatesGroup):
     product = State()
     quantity = State()
     confirmation = State()
+
+
+class Stats(StatesGroup):
+    plot = State()
 
 
 @food_router.callback_query(F.data == "food")
@@ -257,7 +262,7 @@ async def process_meal_confirmation(callback: CallbackQuery, state: FSMContext, 
 
 
 @food_router.callback_query(F.data == "stat")
-async def day_stats(callback: CallbackQuery, session: AsyncSession):
+async def day_stats(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     today_meals = await get_today_meals(session, callback.from_user.id)
     if not today_meals:
         await callback.message.answer("Сегодня вы не добавляли приёмы пищи!")
@@ -284,9 +289,25 @@ async def day_stats(callback: CallbackQuery, session: AsyncSession):
 
         kb = plot_keyboard()
         await callback.message.answer(text, parse_mode=ParseMode.HTML, reply_markup=kb)
+        await state.set_state(Stats.plot)
+        await state.update_data(today_meals=today_meals)
     kb = start_keyboard()
     await callback.message.answer("Выберите опцию", reply_markup=kb)
 
+    await callback.answer()
+
+
+@food_router.callback_query(F.data == "plot")
+async def day_stats_plot(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    today_meals = data["today_meals"]
+    chart_buffer = await generate_nutrition_chart(today_meals)
+    await callback.message.answer_photo(
+                BufferedInputFile(chart_buffer.getvalue(), "nutrition.png"),
+                caption="Ваша статистика за сегодняшний день"
+            )
+    await state.clear()
+    await callback.message.edit_text(callback.message.text)
     await callback.answer()
 
 
