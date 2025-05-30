@@ -310,12 +310,3 @@ async def day_stats_plot(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(callback.message.text)
     await callback.answer()
 
-
-@food_router.callback_query(F.data == "delete_all_food_data")
-async def delete_all_food_data(callback: CallbackQuery, session: AsyncSession):
-    success = await delete_all_user_food_data(session, callback.from_user.id)
-    if success:
-        await callback.message.answer("Удаление всех данных о продуктах и приёмах пищи прошло успешно.")
-    else:
-        await callback.message.answer("Что-то пошло не так при удалении данных о продуктах и приёмах пищи.")
-    await callback.answer()

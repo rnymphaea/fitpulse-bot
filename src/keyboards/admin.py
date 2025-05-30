@@ -3,7 +3,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQu
 
 def admin_keyboard():
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Удалить все данные о продуктах и приёмах пищи", callback_data="delete_all_food_data")]
+        [InlineKeyboardButton(text="Удалить все данные", callback_data="delete_all_food_data")]
     ])
     return keyboard
 
